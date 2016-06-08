@@ -1,8 +1,21 @@
-@import AppKit;
-@import Foundation;
+#import <AppKit/AppKit.h>
+#import <Foundation/Foundation.h>
 
 #include <unistd.h>
 #include <sys/wait.h>
+
+extern char **environ;
+
+int try_activate (pid_t pid) {
+  NSRunningApplication* aa = [NSRunningApplication runningApplicationWithProcessIdentifier:pid];
+  NSLog(@"Looked for %d, got app %@", pid, aa);
+  if (!aa) {
+    return 0;
+  }
+
+  [aa activateWithOptions:(NSApplicationActivateAllWindows | NSApplicationActivateIgnoringOtherApps)];
+  return 1;
+}
 
 int main (int argc, char **argv) {
   if (argc < 2) {
@@ -13,7 +26,8 @@ int main (int argc, char **argv) {
 
   pid_t p = fork();
   if (p == 0) {
-    NSLog(@"In child, woo! should launch %s", exePath);
+    NSLog(@"Launch %s", exePath);
+    NSLog(@"Environ = %s", environ[0]);
     int eret = execl("/usr/bin/sandbox-exec", "/usr/bin/sandbox-exec", "-f", "/Users/amos/Dev/sand/itch.sb", exePath, NULL);
     NSLog(@"Done execing (eret = %d)", eret);
   } else {
@@ -29,49 +43,45 @@ int main (int argc, char **argv) {
         exit(status);
       }
 
-      NSRunningApplication* aa = [NSRunningApplication runningApplicationWithProcessIdentifier:p];
-      NSLog(@"Looked for %d, got app %@", p, aa);
-      if (aa) {
-        [aa activateWithOptions:(NSApplicationActivateAllWindows | NSApplicationActivateIgnoringOtherApps)];
-        NSLog(@"App icon: %@", [aa icon]);
-        NSImage* img = [[NSImage alloc] initWithContentsOfFile:@"/Users/amos/Library/Application Support/itch/apps/Overland/Overland.app/Contents/Resources/PlayerIcon.icns"];
-        NSApplication *app = [NSApplication sharedApplication];
-        NSLog(@"Shared app: %@", app);
-        [app setApplicationIconImage:img];
-        break;
+      if (try_activate(p)) {
+        NSLog(@"Activated!");
+        found = true;
       } else {
-        NSString* pst = [NSString stringWithFormat:@"%d", p]; 
+        NSString* pidstring = [NSString stringWithFormat:@"%d", p]; 
 
-        NSTask *task;
-        task = [[NSTask alloc] init];
+        NSTask *task = [[NSTask alloc] init];
         [task setLaunchPath: @"/bin/ps"];
 
-        NSArray *arguments;
-        arguments = [NSArray arrayWithObjects: @"-eo", @"ppid,pid", nil];
+        NSArray *arguments = [NSArray arrayWithObjects: @"-eo", @"ppid,pid", nil];
         [task setArguments: arguments];
 
-        NSPipe *pipe;
-        pipe = [NSPipe pipe];
+        NSPipe *pipe = [NSPipe pipe];
         [task setStandardOutput: pipe];
 
-        NSFileHandle *file;
-        file = [pipe fileHandleForReading];
+        NSFileHandle *file = [pipe fileHandleForReading];
 
         [task launch];
 
-        NSData *data;
-        data = [file readDataToEndOfFile];
+        NSData *data = [file readDataToEndOfFile];
+        NSString *psoutput = [[NSString alloc] initWithData: data encoding: NSUTF8StringEncoding];
 
-        NSString *string;
-        string = [[NSString alloc] initWithData: data encoding: NSUTF8StringEncoding];
-
-        NSArray<NSString *>* lines = [string componentsSeparatedByString:@"\n"];
+        NSArray<NSString *>* lines = [psoutput componentsSeparatedByString:@"\n"];
 
         for (NSString *line in lines) {
-          NSLog(@"Line: %@", line);
+          NSArray<NSString *>* tokens = [line componentsSeparatedByString:@" "];
+          if ([tokens count] == 2) {
+            if ([tokens[0] isEqualToString:pidstring]) {
+              NSLog(@"Found child process %@", tokens[1]);
+              pid_t cpid = (pid_t) [tokens[1] intValue];
+              if (try_activate(cpid)) {
+                found = true;
+                break;
+              }
+            }
+          }
         }
 
-        [string release];
+        [psoutput release];
         [task release];
       }
 
