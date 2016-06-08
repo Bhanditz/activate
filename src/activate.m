@@ -4,24 +4,6 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-@interface NSImage(saveAsJpegWithName)
-- (void) saveAsJpegWithName:(NSString*) fileName;
-@end
-
-@implementation NSImage(saveAsJpegWithName)
-
-- (void) saveAsJpegWithName:(NSString*) fileName
-{
-    // Cache the reduced image
-    NSData *imageData = [self TIFFRepresentation];
-    NSBitmapImageRep *imageRep = [NSBitmapImageRep imageRepWithData:imageData];
-    NSDictionary *imageProps = [NSDictionary dictionaryWithObject:[NSNumber numberWithFloat:1.0] forKey:NSImageCompressionFactor];
-    imageData = [imageRep representationUsingType:NSJPEGFileType properties:imageProps];
-    [imageData writeToFile:fileName atomically:NO];        
-}
-
-@end
-
 int main (int argc, char **argv) {
   if (argc < 2) {
     NSLog(@"Usage: activate EXEPATH");
@@ -52,7 +34,6 @@ int main (int argc, char **argv) {
       if (aa) {
         [aa activateWithOptions:(NSApplicationActivateAllWindows | NSApplicationActivateIgnoringOtherApps)];
         NSLog(@"App icon: %@", [aa icon]);
-        [[aa icon] saveAsJpegWithName:@"icon.jpg"];
         NSImage* img = [[NSImage alloc] initWithContentsOfFile:@"/Users/amos/Library/Application Support/itch/apps/Overland/Overland.app/Contents/Resources/PlayerIcon.icns"];
         NSApplication *app = [NSApplication sharedApplication];
         NSLog(@"Shared app: %@", app);
