@@ -1,6 +1,21 @@
 
 stages:
   - build
+  - deploy
 
 build:darwin:
-  - scripts/ci-build.sh
+  stage: build
+  tags:
+    - darwin
+  script:
+    - scripts/ci-build.sh
+  artifacts:
+    paths:
+      - activate
+
+deploy:
+  stage: deploy
+  tags:
+    - dropsy
+  script:
+    - scripts/ci-deploy.sh
