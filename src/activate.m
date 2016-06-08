@@ -65,10 +65,10 @@ int main (int argc, char **argv) {
         NSData *data = [file readDataToEndOfFile];
         NSString *psoutput = [[NSString alloc] initWithData: data encoding: NSUTF8StringEncoding];
 
-        NSArray<NSString *>* lines = [psoutput componentsSeparatedByString:@"\n"];
+        NSArray* lines = [psoutput componentsSeparatedByString:@"\n"];
 
         for (NSString *line in lines) {
-          NSArray<NSString *>* tokens = [line componentsSeparatedByString:@" "];
+          NSArray* tokens = [line componentsSeparatedByString:@" "];
           if ([tokens count] == 2) {
             if ([tokens[0] isEqualToString:pidstring]) {
               NSLog(@"Found child process %@", tokens[1]);
