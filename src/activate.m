@@ -128,6 +128,7 @@ int main (int argc, char **argv) {
     NSString* bundlePath = [NSString stringWithUTF8String:argv[2]];
     NSBundle* bundle = [NSBundle bundleWithPath:bundlePath];
     printf("%s\n", [[bundle executablePath] UTF8String]);
+    return 0;
   }
 
   return activate(&argv[1]);
