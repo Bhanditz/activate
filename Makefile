@@ -1,5 +1,5 @@
 
-CFLAGS:=-arch i386 -arch x86_64 -Wall -Os
+CFLAGS:=-arch i386 -arch x86_64 -Wall -Os ${CFLAGS}
 LDFLAGS:=-framework Foundation -framework AppKit
 CLANG:=clang
 STRIP:=strip
