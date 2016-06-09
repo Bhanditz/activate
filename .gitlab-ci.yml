@@ -11,7 +11,7 @@ build:darwin:
     - scripts/ci-build.sh
   artifacts:
     paths:
-      - activate
+      - binaries
 
 deploy:
   stage: deploy
@@ -19,3 +19,6 @@ deploy:
     - dropsy
   script:
     - scripts/ci-deploy.sh
+  dependencies:
+    - :build:darwin
+

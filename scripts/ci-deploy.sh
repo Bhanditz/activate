@@ -1,2 +1,4 @@
 #!/bin/bash -xe
-echo "Should deploy right about now"
+
+# upload all artifacts from a single worker
+gsutil cp -r -a public-read binaries/* gs://dl.itch.ovh/activate/

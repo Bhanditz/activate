@@ -4,11 +4,21 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
+#ifndef ACTIVATE_VERSION
+#define ACTIVATE_VERSION "head"
+#endif
+
+#ifdef DEBUG
+#define debug(format, ...) NSLog(format, ##__VA_ARGS__)
+#else
+#define debug(...)
+#endif
+
 extern char **environ;
 
 int try_activate (pid_t pid) {
   NSRunningApplication* aa = [NSRunningApplication runningApplicationWithProcessIdentifier:pid];
-  NSLog(@"Looked for %d, got app %@", pid, aa);
+  debug(@"Looked for %d, got app %@", pid, aa);
   if (!aa) {
     return 0;
   }
@@ -17,21 +27,16 @@ int try_activate (pid_t pid) {
   return 1;
 }
 
-int main (int argc, char **argv) {
-  if (argc < 2) {
-    NSLog(@"Usage: activate EXEPATH");
-    return 1;
-  }
-  char *exePath = argv[1];
-
+int activate (char **args) {
   pid_t p = fork();
   if (p == 0) {
-    NSLog(@"Launch %s", exePath);
-    NSLog(@"Environ = %s", environ[0]);
-    int eret = execl("/usr/bin/sandbox-exec", "/usr/bin/sandbox-exec", "-f", "/Users/amos/Dev/sand/itch.sb", exePath, NULL);
-    NSLog(@"Done execing (eret = %d)", eret);
+    debug(@"Launch %s", args[0]);
+    debug(@"Environ = %s", environ[0]);
+
+    int eret = execvp(args[0], args);
+    debug(@"Done execing (eret = %d)", eret);
   } else {
-    NSLog(@"Launched child");
+    debug(@"Launched child");
     usleep(200000);
 
     int found = 0;
@@ -39,15 +44,15 @@ int main (int argc, char **argv) {
       int status;
       int wret = waitpid(-1, &status, WNOHANG);
       if (wret != 0) {
-        NSLog(@"Child exited (with %d), quitting...", status);
+        debug(@"Child exited (with %d), quitting...", status);
         exit(status);
       }
 
       if (try_activate(p)) {
-        NSLog(@"Activated!");
+        debug(@"Activated!");
         found = true;
       } else {
-        NSString* pidstring = [NSString stringWithFormat:@"%d", p]; 
+        NSString* pidstring = [NSString stringWithFormat:@"%d", p];
 
         NSTask *task = [[NSTask alloc] init];
         [task setLaunchPath: @"/bin/ps"];
@@ -71,7 +76,7 @@ int main (int argc, char **argv) {
           NSArray* tokens = [line componentsSeparatedByString:@" "];
           if ([tokens count] == 2) {
             if ([tokens[0] isEqualToString:pidstring]) {
-              NSLog(@"Found child process %@", tokens[1]);
+              debug(@"Found child process %@", tokens[1]);
               pid_t cpid = (pid_t) [tokens[1] intValue];
               if (try_activate(cpid)) {
                 found = true;
@@ -88,12 +93,43 @@ int main (int argc, char **argv) {
       sleep(1);
     }
 
-    NSLog(@"Now waiting for child..");
+    debug(@"Now waiting for child..");
 
     int status;
     wait(&status);
-    NSLog(@"Child exited with %d", status);
+    debug(@"Child exited with %d", status);
   }
 
   return 0;
 }
+
+int main (int argc, char **argv) {
+  if (argc < 2) {
+    fprintf(stderr, "Usage: activate COMMAND ARGS\n");
+    return 1;
+  }
+
+  char *firstArg = argv[1];
+
+  if (strcmp(firstArg, "-V") == 0) {
+    printf("%s\n", ACTIVATE_VERSION);
+    return 0;
+  }
+
+  if (strcmp(firstArg, "--print-library-paths") == 0) {
+    NSArray* paths = NSSearchPathForDirectoriesInDomains( NSLibraryDirectory, NSUserDomainMask, YES );
+    for (NSString* path in paths) {
+      printf("%s\n", [path UTF8String]);
+    }
+    return 0;
+  }
+
+  if (strcmp(firstArg, "--print-bundle-executable-path") == 0) {
+    NSString* bundlePath = [NSString stringWithUTF8String:argv[2]];
+    NSBundle* bundle = [NSBundle bundleWithPath:bundlePath];
+    printf("%s\n", [[bundle executablePath] UTF8String]);
+  }
+
+  return activate(&argv[1]);
+}
+
