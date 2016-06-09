@@ -7,5 +7,5 @@ STRIP:=strip
 ACTIVATE_CFLAGS?=-DACTIVATE_VERSION=\"head\"
 
 all:
-	${CLANG} ${CFLAGS} src/activate.m -o activate ${LDFLAGS}
+	${CLANG} ${CFLAGS} ${ACTIVATE_CFLAGS} src/activate.m -o activate ${LDFLAGS}
 	${STRIP} activate

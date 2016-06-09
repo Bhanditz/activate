@@ -33,8 +33,7 @@ int activate (char **args) {
     debug(@"Launch %s", args[0]);
     debug(@"Environ = %s", environ[0]);
 
-    int eret = execvp(args[0], args);
-    debug(@"Done execing (eret = %d)", eret);
+    execvp(args[0], args);
   } else {
     debug(@"Launched child");
     usleep(200000);

@@ -9,10 +9,11 @@ if [ -n "$CI_BUILD_TAG" ]; then
   export ACTIVATE_VERSION=$CI_BUILD_TAG
 fi
 export CI_VERSION=$CI_BUILD_REF_NAME
-export ACTIVATE_CFLAGS="-DACTIVATE_VERSION\\\"$ACTIVATE_VERSION\\\""
+export ACTIVATE_CFLAGS="-DACTIVATE_VERSION=\\\"$ACTIVATE_VERSION\\\""
 
 make
 file activate
+./activate -V
 
 export CI_OS="darwin"
 export CI_ARCH="amd64"
